@@ -30,7 +30,8 @@ def _load(name):
 SEG         = 5
 SEG_TITLE   = "Marathon \u2192 Thunder Bay"
 SEG_META    = "Hwy 17 / Hwy 11/17 \u00b7 ~330 km \u00b7 ~3.5 hrs"
-PRIMARY     = "17"
+PRIMARY      = "17"
+PRIMARY_NAMES = {"17", "11"}
 
 STOPS = [
     ("I5-01", "Eagle Canyon Suspension Bridge", 48.794711, -88.613712, "Points of Interest"),
@@ -164,7 +165,13 @@ for f in _load("ne_10m_roads"):
     for r in rings(f["geometry"]):
         if not touches(r):
             continue
-        (prim if nm == PRIMARY else sec).append((nm, r))
+        # Hwy 11 has 5 segments in the bbox. Only the Nipigon→TB piece
+        # (min_lon=-89.30, max_lat=49.02) should be primary. The northern branch
+        # has max_lat>49.10; the west-of-TB branch has min_lon<-89.35.
+        xs_r = [p[0] for p in r]; ys_r = [p[1] for p in r]
+        is_prim = (nm == "17") or (
+            nm == "11" and min(xs_r) > -89.35 and max(ys_r) < 49.10)
+        (prim if is_prim else sec).append((nm, r))
 
 def shield(x, y, label, w=22, h=16):
     return (f'<g><rect x="{x-w/2:.1f}" y="{y-h/2:.1f}" width="{w}" height="{h}" '
