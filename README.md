@@ -16,8 +16,8 @@ Self-contained printable HTML packages for each segment of the trip. Click **Vie
 | 5 | Marathon → Thunder Bay | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment5-printable.html) |
 | 6 | Thunder Bay → Geraldton | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment6-printable.html) |
 | 7 | Geraldton → Hearst | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment7-printable.html) |
-| 8 | Hearst → Cochrane | ⚠️ Stale | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment8-printable.html) |
-| 9 | Cochrane → Timmins | ⚠️ Stale | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment9-printable.html) |
+| 8 | Hearst → Cochrane | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment8-printable.html) |
+| 9 | Cochrane → Timmins | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment9-printable.html) |
 | 10 | Timmins → New Liskeard | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment10-printable.html) |
 | 11 | New Liskeard → North Bay | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment11-printable.html) |
 | 12 | North Bay → Algonquin | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment12-printable.html) |
