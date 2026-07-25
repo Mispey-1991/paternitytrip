@@ -14,14 +14,14 @@ Self-contained printable HTML packages for each segment of the trip. Click **Vie
 | 3 | Sault Ste. Marie → Wawa | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment3-printable.html) |
 | 4 | Wawa → Marathon | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment4-printable.html) |
 | 5 | Marathon → Thunder Bay | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment5-printable.html) |
-| 6 | Thunder Bay → Geraldton | — | *Not yet built* |
-| 7 | Geraldton → Hearst | — | *Not yet built* |
-| 8 | Hearst → Cochrane | — | *Not yet built* |
-| 9 | Cochrane → Timmins | — | *Not yet built* |
-| 10 | Timmins → New Liskeard | — | *Not yet built* |
-| 11 | New Liskeard → North Bay | — | *Not yet built* |
-| 12 | North Bay → Algonquin | — | *Not yet built* |
-| 13 | Algonquin → Whitby | — | *Not yet built* |
+| 6 | Thunder Bay → Geraldton | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment6-printable.html) |
+| 7 | Geraldton → Hearst | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment7-printable.html) |
+| 8 | Hearst → Cochrane | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment8-printable.html) |
+| 9 | Cochrane → Timmins | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment9-printable.html) |
+| 10 | Timmins → New Liskeard | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment10-printable.html) |
+| 11 | New Liskeard → North Bay | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment11-printable.html) |
+| 12 | North Bay → Algonquin | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment12-printable.html) |
+| 13 | Algonquin → Whitby | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment13-printable.html) |
 
 ---
 
@@ -35,7 +35,7 @@ reference/           Generator scripts (A, B, C, D) — source of truth for all 
 ## Generators
 
 | Script | Purpose |
-|--------|---------|
+|--------|---------| 
 | `generator-a-route-line.py` | Route-line SVG (schematic, west→east layout) |
 | `generator-b-full-page-map.py` | Full-page geographic map SVG (Natural Earth 10m) |
 | `generator-c-html-assembler.py` | Assembles A + B into the printable HTML; auto-appends inset if present |
