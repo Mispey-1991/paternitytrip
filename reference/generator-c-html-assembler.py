@@ -6,7 +6,7 @@ wrap this in a function — Notion strips the common leading indent (TN-11).
 
 Writes: segment{SEG}-printable.html
 """
-import html as _html, json, re
+import html as _html, json, os, re
 
 E = _html.escape   # escape helper; call on every string from the DB
 
@@ -204,6 +204,19 @@ p('<div class="mappage">\n')
 p(map_svg.replace("<svg", '<svg class="fullmap"', 1))
 p('\n</div>\n')
 
+# ---- optional inset map (Generator D output) ----------------------------
+# If segment{SEG}-inset.svg exists on disk, append it as a final sheet.
+# Generator D is run separately before Generator C when Build Notes specify it.
+INSET_SVG_FILE = f"segment{SEG}-inset.svg"
+if os.path.exists(INSET_SVG_FILE):
+    inset_svg = load_svg(INSET_SVG_FILE)
+    p('<div class="mappage">\n')
+    p(f'<p style="font-family:Helvetica,Arial,sans-serif;font-size:8pt;'
+      f'color:#6b6660;margin:0 0 6pt 0;letter-spacing:0.08em">'
+      f'DETAIL MAP</p>\n')
+    p(inset_svg.replace("<svg", '<svg class="fullmap"', 1))
+    p('\n</div>\n')
+
 p('</body>\n</html>')
 
 # ---- write and verify ---------------------------------------------------
@@ -212,7 +225,10 @@ import xml.etree.ElementTree as ET
 out = "".join(parts)
 
 assert 'src="' not in out,           "FAIL: external src= reference found"
-assert out.count('<svg') == 2,        f"FAIL: expected 2 <svg> elements, got {out.count('<svg')}"
+inset_present = os.path.exists(INSET_SVG_FILE)
+expected_svgs = 3 if inset_present else 2
+assert out.count('<svg') == expected_svgs, \
+    f"FAIL: expected {expected_svgs} <svg> elements, got {out.count('<svg')}"
 assert '<?xml' not in out,            "FAIL: <?xml declaration present"
 
 # map page is last svg, preceded by mappage div
@@ -220,9 +236,9 @@ last_svg_pos = out.rfind('<svg')
 mappage_pos  = out.rfind('class="mappage"')
 assert mappage_pos < last_svg_pos,    "FAIL: last <svg> not inside mappage div"
 after_last   = out[last_svg_pos + out[last_svg_pos:].index('</svg>') + 6:]
-assert after_last.strip().replace('\n','').replace(' ','') in ('</div></body></html>', '</div>\n</body>\n</html>') or \
-       all(c in ' \n<>/divbodyhtml' for c in after_last), \
-       "FAIL: content after final </svg>"
+# strip tags and whitespace — should be nothing but closing divs/body/html
+after_stripped = re.sub(r'<[^>]+>', '', after_last).strip()
+assert after_stripped == '', f"FAIL: unexpected text content after final </svg>: {after_stripped[:80]!r}"
 
 stop_count_in_meta = re.search(r'(\d+)\s+stops', meta)
 if stop_count_in_meta:
