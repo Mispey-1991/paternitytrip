@@ -20,8 +20,8 @@ Self-contained printable HTML packages for each segment of the trip. Click **Vie
 | 9 | Cochrane → Timmins | ⚠️ Stale | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment9-printable.html) |
 | 10 | Timmins → New Liskeard | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment10-printable.html) |
 | 11 | New Liskeard → North Bay | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment11-printable.html) |
-| 12 | North Bay → Algonquin | — | *Not yet built* |
-| 13 | Algonquin → Whitby | — | *Not yet built* |
+| 12 | North Bay → Algonquin | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment12-printable.html) |
+| 13 | Algonquin → Whitby | ✅ Built | [View](https://htmlpreview.github.io/?https://github.com/Mispey-1991/paternitytrip/blob/main/printables/segment13-printable.html) |
 
 ---
 
@@ -35,7 +35,7 @@ reference/           Generator scripts (A, B, C, D) — source of truth for all 
 ## Generators
 
 | Script | Purpose |
-|--------|---------| 
+|--------|---------|
 | `generator-a-route-line.py` | Route-line SVG (schematic, west→east layout) |
 | `generator-b-full-page-map.py` | Full-page geographic map SVG (Natural Earth 10m) |
 | `generator-c-html-assembler.py` | Assembles A + B into the printable HTML; auto-appends inset if present |
