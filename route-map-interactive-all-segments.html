@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Northern Ontario Road Trip — Interactive Route Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Georgia, serif; background: #f5f5f5; }
+        #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+        .info-panel {
+            position: absolute; top: 10px; left: 10px; background: white; padding: 15px;
+            border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000;
+            max-width: 300px; font-size: 13px;
+        }
+        .info-panel h2 { font-size: 16px; margin-bottom: 10px; }
+        .segment-btn {
+            display: block; width: 100%; padding: 8px; margin: 4px 0; background: #f0f0f0;
+            border: 1px solid #ccc; border-radius: 3px; cursor: pointer; text-align: left;
+            font-size: 12px; transition: all 0.2s;
+        }
+        .segment-btn:hover { background: #e0e0e0; }
+        .segment-btn.active { background: #2f9e44; color: white; font-weight: bold; }
+        .legend {
+            position: absolute; bottom: 10px; right: 10px; background: white; padding: 10px;
+            border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000;
+            font-size: 12px;
+        }
+        .legend-item { margin: 5px 0; display: flex; align-items: center; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .poi { background: #2f9e44 !important; }
+        .hike { background: #e8590c !important; }
+        .stay { background: #9c36b5 !important; }
+        .food { background: #e03131 !important; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="info-panel">
+        <h2>Segments</h2>
+        <div id="segment-list"></div>
+    </div>
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot poi"></div>Points of Interest</div>
+        <div class="legend-item"><div class="legend-dot hike"></div>Hikes</div>
+        <div class="legend-item"><div class="legend-dot stay"></div>Places to Stay</div>
+        <div class="legend-item"><div class="legend-dot food"></div>Food & Drink</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        const categoryColors = {
+            "Points of Interest": "#2f9e44",
+            "Hikes": "#e8590c",
+            "Places to Stay": "#9c36b5",
+            "Food & Drink": "#e03131"
+        };
+
+        const segments = [
+            {num: "1a", title: "Whitby → Tobermory", bounds: [[44.7, -81.7], [45.3, -81.1]]},
+            {num: "1b", title: "Tobermory → Little Current", bounds: [[45.5, -82.8], [46.0, -81.8]]},
+            {num: "2", title: "Little Current → Sault Ste. Marie", bounds: [[46.1, -84.4], [46.7, -82.0]]},
+            {num: "3", title: "Sault Ste. Marie → Wawa", bounds: [[46.5, -85.0], [48.0, -84.4]]},
+            {num: "4", title: "Wawa → Marathon", bounds: [[48.3, -86.6], [48.8, -84.7]]},
+            {num: "5", title: "Marathon → Thunder Bay", bounds: [[48.3, -89.3], [49.1, -86.3]]},
+            {num: "6", title: "Thunder Bay → Geraldton", bounds: [[49.2, -88.2], [49.8, -86.5]]},
+            {num: "7", title: "Geraldton → Hearst", bounds: [[49.5, -87.0], [50.2, -83.5]]},
+            {num: "8", title: "Hearst → Cochrane", bounds: [[49.4, -85.1], [50.1, -81.5]]},
+            {num: "9", title: "Cochrane → Timmins", bounds: [[48.3, -81.3], [49.8, -81.0]]},
+            {num: "10", title: "Timmins → New Liskeard", bounds: [[47.5, -81.5], [48.5, -79.2]]},
+            {num: "11", title: "New Liskeard → North Bay", bounds: [[46.3, -79.8], [47.6, -79.2]]},
+            {num: "12", title: "North Bay → Algonquin", bounds: [[45.6, -79.5], [46.4, -78.8]]},
+            {num: "13", title: "Algonquin → Whitby", bounds: [[43.8, -79.7], [45.7, -79.0]]}
+        ];
+
+        const stops = [
+            // Segment 1a
+            {id: "E1a-01", name: "The Crowsnest Pub", lat: 45.2547, lon: -81.6653, cat: "Food & Drink", seg: "1a"},
+            {id: "H1a-01", name: "Halfway Log Dump", lat: 45.2281, lon: -81.4792, cat: "Hikes", seg: "1a"},
+            {id: "H1a-02", name: "Lion's Head Lookout", lat: 44.9727, lon: -81.2464, cat: "Hikes", seg: "1a"},
+            {id: "I1a-01", name: "MS Chi-Cheemaun Ferry", lat: 45.257139, lon: -81.664114, cat: "Points of Interest", seg: "1a"},
+            {id: "I1a-02", name: "The Grotto", lat: 45.2452, lon: -81.5243, cat: "Points of Interest", seg: "1a"},
+            {id: "I1a-03", name: "Singing Sands Beach", lat: 45.1912, lon: -81.5786, cat: "Points of Interest", seg: "1a"},
+            {id: "I1a-04", name: "Big Tub Lighthouse", lat: 45.2533, lon: -81.6811, cat: "Points of Interest", seg: "1a"},
+            {id: "I1a-05", name: "Flowerpot Island", lat: 45.2988, lon: -81.6173, cat: "Points of Interest", seg: "1a"},
+            {id: "I1a-06", name: "Tobermory Harbourfront", lat: 45.2544, lon: -81.6656, cat: "Points of Interest", seg: "1a"},
+            {id: "I1a-07", name: "Fathom Five Centre", lat: 45.2531, lon: -81.6647, cat: "Points of Interest", seg: "1a"},
+            {id: "I1a-08", name: "Bluewater Park", lat: 44.7442, lon: -81.1367, cat: "Points of Interest", seg: "1a"},
+            {id: "P1a-01", name: "Cyprus Lake", lat: 45.2259, lon: -81.5248, cat: "Places to Stay", seg: "1a"},
+            {id: "P1a-02", name: "Wireless Bay Cottages", lat: 45.2619937, lon: -81.6599405, cat: "Places to Stay", seg: "1a"},
+            {id: "P1a-03", name: "Tobermory Village CG", lat: 45.235723, lon: -81.64155, cat: "Places to Stay", seg: "1a"},
+            {id: "P1a-04", name: "Coach House Inn", lat: 45.2374748, lon: -81.6432522, cat: "Places to Stay", seg: "1a"},
+            
+            // Segment 1b
+            {id: "E1b-01", name: "Manitoulin Brewing", lat: 45.9818, lon: -81.9229, cat: "Food & Drink", seg: "1b"},
+            {id: "E1b-02", name: "Manitoulin Chocolate", lat: 45.8996, lon: -82.2374, cat: "Food & Drink", seg: "1b"},
+            {id: "H1b-01", name: "Cup and Saucer Trail", lat: 45.8637, lon: -82.1051, cat: "Hikes", seg: "1b"},
+            {id: "H1b-02", name: "Kagawong River Trail", lat: 45.9022, lon: -82.2561, cat: "Hikes", seg: "1b"},
+            {id: "H1b-03", name: "Bowerman's Trails", lat: 45.5605, lon: -82.0135, cat: "Hikes", seg: "1b"},
+            {id: "H1b-04", name: "McLean's Park", lat: 45.6516, lon: -81.8956, cat: "Hikes", seg: "1b"},
+            {id: "I1b-01", name: "Bridal Veil Falls", lat: 45.9010, lon: -82.2552, cat: "Points of Interest", seg: "1b"},
+            {id: "I1b-02", name: "Providence Bay Beach", lat: 45.6705, lon: -82.2721, cat: "Points of Interest", seg: "1b"},
+            {id: "I1b-03", name: "Misery Bay PP", lat: 45.7925, lon: -82.7483, cat: "Points of Interest", seg: "1b"},
+            {id: "I1b-04", name: "Ten Mile Point", lat: 45.8286, lon: -81.9367, cat: "Points of Interest", seg: "1b"},
+            {id: "I1b-05", name: "Little Current Swing Bridge", lat: 45.9829, lon: -81.9248, cat: "Points of Interest", seg: "1b"},
+            {id: "I1b-06", name: "South Baymouth Terminal", lat: 45.5581, lon: -82.0110, cat: "Points of Interest", seg: "1b"},
+            {id: "I1b-07", name: "Manitowaning Museum", lat: 45.7451, lon: -81.7985, cat: "Points of Interest", seg: "1b"},
+            {id: "I1b-08", name: "Great Spirit Circle Trail", lat: 45.7670, lon: -82.0070, cat: "Points of Interest", seg: "1b"},
+            
+            // Segment 2
+            {id: "E2-01", name: "Bobber's", lat: 46.300017, lon: -83.792397, cat: "Food & Drink", seg: "2"},
+            {id: "I2-02", name: "Agawa Canyon Train", lat: 46.516760, lon: -84.349886, cat: "Points of Interest", seg: "2"},
+            {id: "I2-03", name: "Bruce Mines", lat: 46.300262, lon: -83.793294, cat: "Points of Interest", seg: "2"},
+            {id: "I2-04", name: "Bushplane Centre", lat: 46.504980, lon: -84.324632, cat: "Points of Interest", seg: "2"},
+            {id: "I2-05", name: "Sault Canal NHS", lat: 46.513243, lon: -84.350899, cat: "Points of Interest", seg: "2"},
+            {id: "I2-06", name: "Serpent River", lat: 46.210241, lon: -82.514364, cat: "Points of Interest", seg: "2"},
+            {id: "P2-01", name: "Chutes PP", lat: 46.218155, lon: -82.077219, cat: "Places to Stay", seg: "2"},
+            {id: "P2-02", name: "Mississagi PP", lat: 46.600674, lon: -82.682865, cat: "Places to Stay", seg: "2"},
+            
+            // Segment 3
+            {id: "H3-01", name: "Agawa Rock Pictographs", lat: 47.368013, lon: -84.699194, cat: "Hikes", seg: "3"},
+            {id: "H3-02", name: "Edmund Fitzgerald Lookout", lat: 46.981235, lon: -84.700187, cat: "Hikes", seg: "3"},
+            {id: "H3-03", name: "Nokomis Trail", lat: 47.791944, lon: -84.896222, cat: "Hikes", seg: "3"},
+            {id: "H3-04", name: "Old Woman Bay", lat: 47.785350, lon: -84.910531, cat: "Hikes", seg: "3"},
+            {id: "H3-05", name: "Sand River Trail", lat: 47.432863, lon: -84.730757, cat: "Hikes", seg: "3"},
+            {id: "I3-01", name: "Chippewa Falls", lat: 46.928048, lon: -84.425783, cat: "Points of Interest", seg: "3"},
+            {id: "I3-02", name: "Wawa Goose", lat: 47.973533, lon: -84.782947, cat: "Points of Interest", seg: "3"},
+            {id: "P3-01", name: "Batchawana Bay", lat: 46.940930, lon: -84.548781, cat: "Places to Stay", seg: "3"},
+            {id: "P3-02", name: "Lake Superior PP", lat: 47.334948, lon: -84.616209, cat: "Places to Stay", seg: "3"},
+            {id: "P3-03", name: "Pancake Bay", lat: 46.967858, lon: -84.678995, cat: "Places to Stay", seg: "3"},
+            
+            // Segment 4–13: Using previously generated data
+            {id: "H4-01", name: "Denison Falls", lat: 47.9782669, lon: -85.2059020, cat: "Hikes", seg: "4"},
+            {id: "H4-02", name: "Scenic High Falls", lat: 47.9592683, lon: -84.8279842, cat: "Hikes", seg: "4"},
+            {id: "I4-01", name: "Sandy Beach", lat: 47.9557440, lon: -84.8535581, cat: "Points of Interest", seg: "4"},
+            {id: "I4-02", name: "White River", lat: 48.5931833, lon: -85.2761536, cat: "Points of Interest", seg: "4"},
+            {id: "P4-01", name: "Neys PP", lat: 48.7762451, lon: -86.5850494, cat: "Places to Stay", seg: "4"},
+            {id: "P4-02", name: "Obatanga PP", lat: 48.343175, lon: -85.0470494, cat: "Places to Stay", seg: "4"},
+            {id: "P4-03", name: "Pukaskwa NP", lat: 48.5930342, lon: -86.2933777, cat: "Places to Stay", seg: "4"},
+            {id: "P4-04", name: "Travelodge Marathon", lat: 48.7167207, lon: -86.3784608, cat: "Places to Stay", seg: "4"},
+            {id: "P4-05", name: "White Lake PP", lat: 48.7243548, lon: -85.6444181, cat: "Places to Stay", seg: "4"},
+            {id: "P4-06", name: "High Falls Motel", lat: 47.9465, lon: -84.8093, cat: "Places to Stay", seg: "4"},
+            
+            {id: "I5-01", name: "Eagle Canyon Bridge", lat: 48.7947113, lon: -88.6137117, cat: "Points of Interest", seg: "5"},
+            {id: "I5-02", name: "Mount McKay", lat: 48.345278, lon: -89.285556, cat: "Points of Interest", seg: "5"},
+            {id: "I5-03", name: "Nipigon River", lat: 49.0197723, lon: -88.2506672, cat: "Points of Interest", seg: "5"},
+            {id: "I5-04", name: "Ouimet Canyon", lat: 48.7895139, lon: -88.6712946, cat: "Points of Interest", seg: "5"},
+            {id: "I5-05", name: "Terry Fox Memorial", lat: 48.48497, lon: -89.1679229, cat: "Points of Interest", seg: "5"},
+            {id: "P5-01", name: "Kakabeka Falls", lat: 48.4032565, lon: -89.6239532, cat: "Places to Stay", seg: "5"},
+            {id: "P5-02", name: "Rainbow Falls PP", lat: 48.843837, lon: -87.3959376, cat: "Places to Stay", seg: "5"},
+            {id: "P5-03", name: "Sleeping Giant PP", lat: 48.3693046, lon: -88.804575, cat: "Places to Stay", seg: "5"},
+            
+            {id: "H6-01", name: "Go-Mar Falls", lat: 49.2984022, lon: -88.0906772, cat: "Hikes", seg: "6"},
+            {id: "H6-02", name: "Palisades Trail", lat: 49.334, lon: -88.125, cat: "Hikes", seg: "6"},
+            {id: "I6-01", name: "Arctic Watershed", lat: 49.72, lon: -86.90, cat: "Points of Interest", seg: "6"},
+            {id: "I6-02", name: "Geraldton Gold", lat: 49.7251421, lon: -86.9495175, cat: "Points of Interest", seg: "6"},
+            {id: "I6-03", name: "Jumbo's Cove Tunnel", lat: 49.4352237, lon: -88.1312167, cat: "Points of Interest", seg: "6"},
+            {id: "I6-04", name: "Lake Nipigon PP", lat: 49.4848882, lon: -88.1338845, cat: "Points of Interest", seg: "6"},
+            {id: "I6-05", name: "Longlac History", lat: 49.7841626, lon: -86.538673, cat: "Points of Interest", seg: "6"},
+            {id: "I6-06", name: "Palisades Pijitawabik", lat: 49.3340143, lon: -88.1245743, cat: "Points of Interest", seg: "6"},
+            {id: "I6-07", name: "Postagoni Bridge", lat: 49.44, lon: -88.13, cat: "Points of Interest", seg: "6"},
+            {id: "P6-01", name: "Cedar Shores", lat: 49.6760805, lon: -87.5799474, cat: "Places to Stay", seg: "6"},
+            {id: "P6-02", name: "MacLeod PP", lat: 49.6892271, lon: -86.8961854, cat: "Places to Stay", seg: "6"},
+            
+            // Segments 7–13: Approximate coords based on segment endpoints and geography
+            {id: "P7-01", name: "Fullerton Lake", lat: 50.1792572, lon: -86.7101631, cat: "Places to Stay", seg: "7"},
+            {id: "P7-02", name: "Fushimi Lake PP", lat: 49.8378795, lon: -83.9231158, cat: "Places to Stay", seg: "7"},
+            {id: "I7-01", name: "Hearst", lat: 49.6873827, lon: -83.6604318, cat: "Points of Interest", seg: "7"},
+            {id: "I7-02", name: "Long Lake #58", lat: 49.7871191, lon: -86.5702225, cat: "Points of Interest", seg: "7"},
+            {id: "I7-03", name: "Nagagami Lake", lat: 49.75, lon: -85.10, cat: "Points of Interest", seg: "7"},
+            {id: "P7-03", name: "Nagagamisis PP", lat: 49.5135798, lon: -84.8070691, cat: "Places to Stay", seg: "7"},
+            {id: "I7-04", name: "Riverview Park", lat: 49.7841626, lon: -86.538673, cat: "Points of Interest", seg: "7"},
+            {id: "I7-05", name: "The Last Link", lat: 49.7251421, lon: -86.9495175, cat: "Points of Interest", seg: "7"},
+            
+            {id: "I8-01", name: "Strickland Post", lat: 49.6873827, lon: -83.6604318, cat: "Points of Interest", seg: "8"},
+            {id: "I8-02", name: "Cochrane Polar Bears", lat: 50.08, lon: -81.65, cat: "Points of Interest", seg: "8"},
+            {id: "P8-01", name: "Greenwater PP", lat: 49.414, lon: -85.143, cat: "Places to Stay", seg: "8"},
+            {id: "I8-03", name: "Kapuskasing Cold", lat: 49.396, lon: -85.063, cat: "Points of Interest", seg: "8"},
+            {id: "P8-02", name: "Missinaibi PP", lat: 49.732, lon: -81.010, cat: "Places to Stay", seg: "8"},
+            {id: "I8-04", name: "Polar Bear Express", lat: 49.6, lon: -83.4, cat: "Points of Interest", seg: "8"},
+            {id: "P8-03", name: "Tidewater PP", lat: 49.5, lon: -82.5, cat: "Places to Stay", seg: "8"},
+            
+            {id: "I9-01", name: "Anson Hospital", lat: 49.732, lon: -81.010, cat: "Points of Interest", seg: "9"},
+            {id: "P9-01", name: "Ivanhoe Lake PP", lat: 48.8, lon: -81.2, cat: "Places to Stay", seg: "9"},
+            {id: "P9-02", name: "Kettle Lakes PP", lat: 48.5, lon: -81.5, cat: "Places to Stay", seg: "9"},
+            {id: "I9-02", name: "Porcupine Gold", lat: 48.474, lon: -81.327, cat: "Points of Interest", seg: "9"},
+            {id: "I9-03", name: "Shania Twain Centre", lat: 48.474, lon: -81.327, cat: "Points of Interest", seg: "9"},
+            
+            {id: "I10-01", name: "Cobalt Museum", lat: 48.474, lon: -81.327, cat: "Points of Interest", seg: "10"},
+            {id: "I10-02", name: "Devil's Rock", lat: 48.1, lon: -80.5, cat: "Points of Interest", seg: "10"},
+            {id: "H10-03", name: "Englehart Trail", lat: 48.0, lon: -80.3, cat: "Hikes", seg: "10"},
+            {id: "P10-01", name: "Esker Lakes", lat: 47.95, lon: -80.0, cat: "Places to Stay", seg: "10"},
+            {id: "H10-02", name: "Hell's Gate", lat: 47.95, lon: -80.2, cat: "Hikes", seg: "10"},
+            {id: "P10-02", name: "Hilltop RV", lat: 47.88, lon: -79.95, cat: "Places to Stay", seg: "10"},
+            {id: "P10-03", name: "Kap-Kig-Iwan", lat: 47.8007, lon: -79.8803, cat: "Places to Stay", seg: "10"},
+            {id: "I10-03", name: "Matheson Fire", lat: 47.7, lon: -80.0, cat: "Points of Interest", seg: "10"},
+            {id: "H10-01", name: "Upland Circle", lat: 47.85, lon: -80.1, cat: "Hikes", seg: "10"},
+            
+            {id: "H11-01", name: "Caribou Mountain", lat: 47.515, lon: -79.269, cat: "Hikes", seg: "11"},
+            {id: "I11-01", name: "Chief Commanda", lat: 47.3, lon: -79.5, cat: "Points of Interest", seg: "11"},
+            {id: "I11-02", name: "Dionne Quints", lat: 46.9, lon: -79.7, cat: "Points of Interest", seg: "11"},
+            {id: "I11-03", name: "Ferguson Marker", lat: 46.6, lon: -79.8, cat: "Points of Interest", seg: "11"},
+            {id: "P11-01", name: "Finlayson Point", lat: 46.5, lon: -79.6, cat: "Places to Stay", seg: "11"},
+            {id: "P11-02", name: "Lady Evelyn", lat: 46.4, lon: -79.8, cat: "Places to Stay", seg: "11"},
+            {id: "P11-03", name: "Restoule", lat: 46.35, lon: -79.5, cat: "Places to Stay", seg: "11"},
+            
+            {id: "P12-01", name: "Algonquin", lat: 45.65, lon: -78.95, cat: "Places to Stay", seg: "12"},
+            {id: "P12-02", name: "Arrowhead", lat: 46.0, lon: -79.2, cat: "Places to Stay", seg: "12"},
+            {id: "H12-01", name: "Ragged Falls", lat: 46.2, lon: -79.5, cat: "Hikes", seg: "12"},
+            {id: "I12-01", name: "Voyageur Centre", lat: 46.309, lon: -79.460, cat: "Points of Interest", seg: "12"},
+            
+            {id: "I13-01", name: "East Gate", lat: 45.65, lon: -78.95, cat: "Points of Interest", seg: "13"},
+            {id: "I13-02", name: "Haliburton Forest", lat: 45.5, lon: -79.2, cat: "Points of Interest", seg: "13"},
+            {id: "I13-03", name: "Haliburton Highlands", lat: 45.0, lon: -79.5, cat: "Points of Interest", seg: "13"},
+            {id: "P13-01", name: "Kawartha", lat: 44.5, lon: -79.0, cat: "Places to Stay", seg: "13"},
+        ];
+
+        let map = L.map('map').setView([47, -85], 5);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 16
+        }).addTo(map);
+
+        let currentSegment = null;
+        let markers = [];
+        let highlightedMarkers = new Set();
+
+        // Create marker cluster group
+        stops.forEach(stop => {
+            let marker = L.circleMarker([stop.lat, stop.lon], {
+                radius: 6,
+                fillColor: categoryColors[stop.cat],
+                color: '#fff',
+                weight: 1.5,
+                opacity: 0.7,
+                fillOpacity: 0.8
+            });
+
+            marker.bindPopup(`<b>${stop.id}</b><br/>${stop.name}<br/><em>${stop.cat}</em>`);
+            marker.on('click', () => {
+                currentSegment = stop.seg;
+                updateSegmentHighlight();
+            });
+            
+            marker._stopData = stop;
+            markers.push(marker);
+            marker.addTo(map);
+        });
+
+        // Create segment buttons
+        const segmentList = document.getElementById('segment-list');
+        segments.forEach(seg => {
+            const btn = document.createElement('button');
+            btn.className = 'segment-btn';
+            btn.textContent = `Segment ${seg.num}: ${seg.title}`;
+            btn.onclick = () => {
+                currentSegment = seg.num;
+                updateSegmentHighlight();
+                map.fitBounds(seg.bounds);
+            };
+            btn.id = `seg-${seg.num}`;
+            segmentList.appendChild(btn);
+        });
+
+        function updateSegmentHighlight() {
+            // Reset all markers
+            markers.forEach(m => {
+                m.setStyle({opacity: 0.3, fillOpacity: 0.3});
+            });
+
+            // Highlight current segment
+            highlightedMarkers.clear();
+            markers.forEach(m => {
+                if (m._stopData.seg === currentSegment) {
+                    m.setStyle({opacity: 0.9, fillOpacity: 0.8});
+                    highlightedMarkers.add(m);
+                }
+            });
+
+            // Update button states
+            document.querySelectorAll('.segment-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (currentSegment) {
+                const btn = document.getElementById(`seg-${currentSegment}`);
+                if (btn) btn.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
