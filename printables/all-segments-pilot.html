@@ -246,6 +246,111 @@ details.lede-wrap .lede-body { max-width: 68ch; line-height: 1.5; font-size: 10.
   details.lede-wrap > summary { display: none; }
   details.lede-wrap .lede-body { display: block !important; }
 }
+
+/* ── Feedback system ─────────────────────────────────────────────────── */
+.stop { cursor: pointer; }
+.stop:active { background: #ede9e1 !important; transition: background 0.1s; }
+.advisory { cursor: pointer; }
+.lede-wrap { cursor: pointer; }
+
+.fb-panel {
+  background: #fff;
+  border: 1.5px solid #4a4741;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 6px 0 14px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.13);
+  animation: fb-in 0.12s ease;
+}
+@keyframes fb-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.fb-title {
+  font-family: monospace;
+  font-size: 10px;
+  color: #6b6660;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.fb-close {
+  background: none;
+  border: none;
+  color: #6b6660;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+}
+.fb-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.fb-btn {
+  padding: 6px 11px;
+  border: 1px solid #4a4741;
+  border-radius: 4px;
+  background: #fbfaf8;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: Helvetica, Arial, sans-serif;
+  color: #2b2926;
+}
+.fb-btn:hover { background: #ede9e1; }
+.fb-btn.danger { border-color: #e03131; color: #e03131; }
+.fb-btn.danger:hover { background: #fff0f0; }
+.fb-prose { margin-top: 8px; }
+.fb-prose textarea, .fb-suggest-area textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: 7px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  box-sizing: border-box;
+  resize: vertical;
+  color: #2b2926;
+}
+.fb-submit {
+  display: inline-block;
+  margin-top: 7px;
+  padding: 6px 16px;
+  background: #4a4741;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: Helvetica, Arial, sans-serif;
+}
+.fb-submit:hover { background: #2b2926; }
+.fb-confirm { color: #2f9e44; font-size: 12px; margin-top: 5px; font-family: monospace; }
+.fb-err pre {
+  font-size: 9px; overflow: auto; margin-top: 5px; padding: 5px;
+  background: #fff; border: 1px solid #ccc; color: #333;
+}
+.fb-suggest-wrap {
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px dashed #cfc9bd;
+  text-align: center;
+}
+.fb-suggest-btn {
+  background: none;
+  border: 1px dashed #4a4741;
+  border-radius: 4px;
+  padding: 7px 18px;
+  font-size: 12px;
+  color: #4a4741;
+  cursor: pointer;
+  font-family: Helvetica, Arial, sans-serif;
+}
+.fb-suggest-btn:hover { background: #f0ede8; }
+.fb-suggest-area { margin-top: 8px; text-align: left; }
 </style>
 </head>
 <body>
@@ -962,6 +1067,263 @@ document.querySelectorAll('.lede').forEach(function(el) {
   d.appendChild(body);
   el.replaceWith(d);
 });
+
+// ── Feedback system ────────────────────────────────────────────────────────
+(function() {
+var WEBHOOK = 'https://qv2r8e1ly0kfwlu00xrlk3rp3otz43j2.ui.nabu.casa/api/webhook/trip_feedback_v1';
+
+function segInfo(el) {
+  var p = el.closest('.seg-panel');
+  if (!p) return {segment:'?', segment_title:'?'};
+  var h1 = p.querySelector('h1');
+  return {segment: p.id.replace('panel-',''), segment_title: h1 ? h1.textContent.trim() : ''};
+}
+
+function closeAll() {
+  document.querySelectorAll('.fb-panel, .fb-suggest-wrap').forEach(function(x) { x.remove(); });
+}
+
+function post(payload, btn, container) {
+  btn.textContent = '…'; btn.disabled = true;
+  fetch(WEBHOOK, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      btn.textContent = 'Sent ✓';
+      btn.style.cssText = 'background:#2f9e44;color:#fff;border:none;padding:6px 16px;border-radius:4px;font-size:13px;';
+      setTimeout(closeAll, 1800);
+    })
+    .catch(function(err) {
+      btn.textContent = 'Failed — copy payload';
+      btn.disabled = false;
+      var pre = document.createElement('pre');
+      pre.textContent = JSON.stringify(payload, null, 2);
+      pre.style.cssText = 'font-size:9px;overflow:auto;margin-top:5px;padding:5px;background:#fff;border:1px solid #ccc;';
+      container.appendChild(pre);
+    });
+}
+
+function makHeader(title, panel) {
+  var h = document.createElement('div'); h.className = 'fb-header';
+  var t = document.createElement('span'); t.className = 'fb-title'; t.textContent = title;
+  var x = document.createElement('button'); x.className = 'fb-close'; x.textContent = '✕';
+  x.onclick = function() { panel.remove(); };
+  h.appendChild(t); h.appendChild(x); return h;
+}
+
+function makPanel() {
+  var p = document.createElement('div'); p.className = 'fb-panel'; return p;
+}
+
+function makBtn(label, cls) {
+  var b = document.createElement('button'); b.className = 'fb-btn ' + (cls||''); b.textContent = label; return b;
+}
+
+function makTA(ph) {
+  var ta = document.createElement('textarea'); ta.placeholder = ph; return ta;
+}
+
+function makSubmit() {
+  var b = document.createElement('button'); b.className = 'fb-submit'; b.textContent = 'Send'; return b;
+}
+
+function showPanel(afterEl, panel) {
+  closeAll();
+  afterEl.insertAdjacentElement('afterend', panel);
+  panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// ── Stop panel ─────────────────────────────────────────────────────────────
+function stopPanel(stop) {
+  var idEl = stop.querySelector('.idgutter');
+  var nmEl = stop.querySelector('.stopname');
+  var elId = idEl ? idEl.textContent.trim() : '';
+  var elName = nmEl ? nmEl.textContent.replace(/^★\s*/, '').trim() : '';
+  var si = segInfo(stop);
+
+  var panel = makPanel();
+  panel.appendChild(makHeader('Stop: ' + elId, panel));
+
+  var actions = document.createElement('div'); actions.className = 'fb-actions';
+  var prose = document.createElement('div'); prose.className = 'fb-prose'; prose.style.display = 'none';
+  var ta = makTA('Your suggestion…');
+  var sub = makSubmit();
+  prose.appendChild(ta); prose.appendChild(document.createElement('br')); prose.appendChild(sub);
+
+  function oneShot(type) {
+    post({segment:si.segment, segment_title:si.segment_title, type:type,
+           element_id:elId, element_name:elName, prose:null,
+           timestamp:new Date().toISOString()}, this, panel);
+  }
+
+  var btnRemove = makBtn('Remove', 'danger');
+  btnRemove.onclick = function() { oneShot.call(btnRemove, 'remove_stop'); };
+
+  var btnMust = makBtn('Must-Do');
+  btnMust.onclick = function() { oneShot.call(btnMust, 'mustdo_stop'); };
+
+  var btnEdit = makBtn('Edit description');
+  btnEdit.onclick = function() {
+    actions.style.display = 'none'; prose.style.display = 'block'; ta.focus();
+  };
+
+  sub.onclick = function() {
+    var txt = ta.value.trim(); if (!txt) return;
+    post({segment:si.segment, segment_title:si.segment_title, type:'edit_stop_description',
+           element_id:elId, element_name:elName, prose:txt,
+           timestamp:new Date().toISOString()}, sub, prose);
+  };
+
+  actions.appendChild(btnRemove);
+  actions.appendChild(btnMust);
+  actions.appendChild(btnEdit);
+  panel.appendChild(actions);
+  panel.appendChild(prose);
+  return panel;
+}
+
+// ── Lede panel ─────────────────────────────────────────────────────────────
+function ledePanel(lede) {
+  var si = segInfo(lede);
+  var panel = makPanel();
+  panel.appendChild(makHeader('Segment intro', panel));
+  var ta = makTA('What would you change or add to this intro?');
+  var sub = makSubmit();
+  sub.onclick = function() {
+    var txt = ta.value.trim(); if (!txt) return;
+    post({segment:si.segment, segment_title:si.segment_title, type:'edit_segment_description',
+           element_id:null, element_name:null, prose:txt,
+           timestamp:new Date().toISOString()}, sub, panel);
+  };
+  panel.appendChild(ta); panel.appendChild(document.createElement('br')); panel.appendChild(sub);
+  return panel;
+}
+
+// ── Advisory panel ─────────────────────────────────────────────────────────
+function advisoryPanel(adv) {
+  var si = segInfo(adv);
+  var snippet = adv.textContent.trim().slice(0, 60);
+  var panel = makPanel();
+  panel.appendChild(makHeader('Advisory', panel));
+
+  var actions = document.createElement('div'); actions.className = 'fb-actions';
+  var prose = document.createElement('div'); prose.className = 'fb-prose'; prose.style.display = 'none';
+  var ta = makTA('Your suggestion…');
+  var sub = makSubmit();
+  prose.appendChild(ta); prose.appendChild(document.createElement('br')); prose.appendChild(sub);
+
+  var activeType;
+  function showProse(type) {
+    activeType = type; actions.style.display = 'none'; prose.style.display = 'block'; ta.focus();
+  }
+  sub.onclick = function() {
+    var txt = ta.value.trim(); if (!txt) return;
+    post({segment:si.segment, segment_title:si.segment_title, type:activeType,
+           element_id:null, element_name:snippet, prose:txt,
+           timestamp:new Date().toISOString()}, sub, prose);
+  };
+
+  var btnEdit = makBtn('Edit'); btnEdit.onclick = function() { showProse('edit_advisory'); };
+
+  var btnRemove = makBtn('Remove', 'danger');
+  btnRemove.onclick = function() {
+    post({segment:si.segment, segment_title:si.segment_title, type:'remove_advisory',
+           element_id:null, element_name:snippet, prose:null,
+           timestamp:new Date().toISOString()}, btnRemove, panel);
+  };
+
+  var btnAdd = makBtn('Add new'); btnAdd.onclick = function() { showProse('add_advisory'); };
+
+  actions.appendChild(btnEdit); actions.appendChild(btnRemove); actions.appendChild(btnAdd);
+  panel.appendChild(actions); panel.appendChild(prose);
+  return panel;
+}
+
+// ── Suggest-a-stop widget ──────────────────────────────────────────────────
+function suggestWrap(segPanel) {
+  var h1 = segPanel.querySelector('h1');
+  var si = {segment: segPanel.id.replace('panel-',''), segment_title: h1 ? h1.textContent.trim() : ''};
+
+  var wrap = document.createElement('div'); wrap.className = 'fb-suggest-wrap';
+  var btn = document.createElement('button'); btn.className = 'fb-suggest-btn'; btn.textContent = '＋ Suggest a stop';
+
+  var area = document.createElement('div'); area.className = 'fb-suggest-area'; area.style.display = 'none';
+  var ta = makTA('Name, location, why it would be good for the trip…');
+  var sub = makSubmit();
+  sub.onclick = function() {
+    var txt = ta.value.trim(); if (!txt) return;
+    post({segment:si.segment, segment_title:si.segment_title, type:'suggest_stop',
+           element_id:null, element_name:null, prose:txt,
+           timestamp:new Date().toISOString()}, sub, area);
+  };
+  area.appendChild(ta); area.appendChild(document.createElement('br')); area.appendChild(sub);
+
+  btn.onclick = function() {
+    var open = area.style.display !== 'none';
+    area.style.display = open ? 'none' : 'block';
+    btn.textContent = open ? '＋ Suggest a stop' : '✕ Cancel';
+    if (!open) ta.focus();
+  };
+  wrap.appendChild(btn); wrap.appendChild(area);
+  return wrap;
+}
+
+// ── Long press ────────────────────────────────────────────────────────────
+function longPress(el, cb) {
+  var t = null;
+  el.addEventListener('touchstart', function(e) {
+    t = setTimeout(function() { t = null; cb(e); }, 500);
+  }, {passive:true});
+  el.addEventListener('touchend',  function() { if (t) { clearTimeout(t); t = null; } });
+  el.addEventListener('touchmove', function() { if (t) { clearTimeout(t); t = null; } });
+  el.addEventListener('contextmenu', function(e) { e.preventDefault(); cb(e); });
+}
+
+// ── Wire everything ───────────────────────────────────────────────────────
+document.querySelectorAll('.stop').forEach(function(stop) {
+  longPress(stop, function() { showPanel(stop, stopPanel(stop)); });
+});
+document.querySelectorAll('.lede-wrap').forEach(function(lede) {
+  longPress(lede, function() { showPanel(lede, ledePanel(lede)); });
+});
+document.querySelectorAll('.advisory').forEach(function(adv) {
+  longPress(adv, function() { showPanel(adv, advisoryPanel(adv)); });
+});
+document.querySelectorAll('.seg-panel').forEach(function(p) {
+  p.appendChild(suggestWrap(p));
+});
+
+// Category h2 header → suggest a stop in that category
+document.querySelectorAll('.category h2').forEach(function(h2) {
+  longPress(h2, function() {
+    var cat = h2.textContent.trim();
+    var sp = h2.closest('.seg-panel');
+    var h1 = sp ? sp.querySelector('h1') : null;
+    var si = {segment: sp ? sp.id.replace('panel-','') : '?',
+               segment_title: h1 ? h1.textContent.trim() : ''};
+    var panel = makPanel();
+    panel.appendChild(makHeader('Suggest a stop — ' + cat, panel));
+    var ta = makTA('Name, location, why it\'s a good fit here…');
+    var sub = makSubmit();
+    sub.onclick = function() {
+      var txt = ta.value.trim(); if (!txt) return;
+      post({segment:si.segment, segment_title:si.segment_title, type:'suggest_stop',
+            element_id:null, element_name:cat, prose:txt,
+            timestamp:new Date().toISOString()}, sub, panel);
+    };
+    panel.appendChild(ta);
+    panel.appendChild(document.createElement('br'));
+    panel.appendChild(sub);
+    showPanel(h2, panel);
+  });
+});
+
+// Click outside closes panels
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.fb-panel') && !e.target.closest('.fb-suggest-wrap')) closeAll();
+});
+
+})();
+
 </script>
 
 </body>
