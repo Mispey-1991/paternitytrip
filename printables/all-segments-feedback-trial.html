@@ -1292,6 +1292,31 @@ document.querySelectorAll('.seg-panel').forEach(function(p) {
   p.appendChild(suggestWrap(p));
 });
 
+// Category h2 header → suggest a stop in that category
+document.querySelectorAll('.category h2').forEach(function(h2) {
+  longPress(h2, function() {
+    var cat = h2.textContent.trim();
+    var sp = h2.closest('.seg-panel');
+    var h1 = sp ? sp.querySelector('h1') : null;
+    var si = {segment: sp ? sp.id.replace('panel-','') : '?',
+               segment_title: h1 ? h1.textContent.trim() : ''};
+    var panel = makPanel();
+    panel.appendChild(makHeader('Suggest a stop — ' + cat, panel));
+    var ta = makTA('Name, location, why it\'s a good fit here…');
+    var sub = makSubmit();
+    sub.onclick = function() {
+      var txt = ta.value.trim(); if (!txt) return;
+      post({segment:si.segment, segment_title:si.segment_title, type:'suggest_stop',
+            element_id:null, element_name:cat, prose:txt,
+            timestamp:new Date().toISOString()}, sub, panel);
+    };
+    panel.appendChild(ta);
+    panel.appendChild(document.createElement('br'));
+    panel.appendChild(sub);
+    showPanel(h2, panel);
+  });
+});
+
 // Click outside closes panels
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.fb-panel') && !e.target.closest('.fb-suggest-wrap')) closeAll();
